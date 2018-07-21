@@ -10,7 +10,7 @@ if(length(new.packages)) install.packages(new.packages, dependencies = TRUE)
 devtools::install_github("ThomasSiegmund/shinyTypeahead")
 source("https://bioconductor.org/biocLite.R")
 biocLite("monocle")
-source("http://cf.10xgenomics.com/supp/cell-exp/rkit-install-2.0.0.R")
+devtools::install_github("buenrostrolab/cellrangerRkit")
 
 library(shiny)
 library(shinyTypeahead)

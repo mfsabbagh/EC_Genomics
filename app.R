@@ -1,0 +1,379 @@
+library(shiny)
+library(shinyTypeahead)
+library(tidyverse)
+library(magrittr)
+library(stringr)
+library(stringr)
+library(plotly)
+library(monocle)
+source('MS01_custom_functions.R')
+library(cellrangerRkit)
+library(reshape2)
+
+##### Transcriptional landscape #####
+RNA_principalComponents <- readRDS("RNA_principalComponents.rds")
+EC_TPMs <- readRDS("EC_TPMs.rds")
+EC_TPMs_averages <- readRDS("EC_TPMs_averages.rds")
+EC_TPMs_tidy <- readRDS("EC_TPMs_tidy.rds")
+fraction_names <- c(
+  "GFPneg" = "Non-EC",
+  "GFPpos" = "EC",
+  "Total" = "Total Tissue"
+)
+
+p7_brain_intersect_DEG <- readRDS("BrainEC_intersect_DEG.rds")
+adult_brain_intersect_DEG <- readRDS("AdultBrainEC_intersect_DEG.rds")
+liver_intersect_DEG <- readRDS("LiverEC_intersect_DEG.rds")
+lung_intersect_DEG <- readRDS("LungEC_intersect_DEG.rds")
+kidney_intersect_DEG <- readRDS("KidneyEC_intersect_DEG.rds")
+CulturedEC_DEG <- readRDS("CulturedEC_intersect_DEG.rds")
+pan_endothelial <- readRDS("pan_endothelial_genes.rds")
+BBB_genes <- readRDS("BBB_genes.rds")
+BBB_genes_lost <- readRDS("BBB_genes_lost.rds")
+
+
+##### Chromatin Accessiblity Landscape #####
+ATAC_principalComponents <- readRDS("ATAC_principalComponents.rds")
+highVariance_motifs <- readRDS("highVariance_motifs.rds")
+
+ATAC_principalComponents_differentialPeaks <- readRDS("ATAC_principalComponents_differentialPeaks.rds")
+highVariance_motifs_differentialPeaks <- readRDS("highVariance_motifs_differentialPeaks.rds")
+
+##### Methylation Landscape #####
+methyl_principalComponents <- readRDS("methyl_principalComponents.rds")
+methyl_highVariance_motifs <- readRDS("methyl_highVariance_motifs.rds")
+
+DMR_methyl_principalComponents <- readRDS("DMR_methyl_principalComponents.rds")
+DMR_methyl_highVariance_motifs <- readRDS("DMR_methyl_highVariance_motifs.rds")
+
+##### Single Cell ####
+gbm_log <- readRDS("gbm_log.rds")
+tsne_proj3 <- readRDS("tsne_proj3.rds")
+gene_list <- readRDS("gene_list.rds")
+
+ui <- navbarPage ( "Vascular Endothelial Cell Trans-omics Resource Database",
+                   tabPanel("Home",
+                            fluidPage(
+                              fluidRow(
+                                h1("VECTRDB"),
+                                p("We present the Vascular Endothelial Cell Trans-omics Resource Database (VECTRDB), a database that integrates and compares the transcriptional, chromatin accessibility, and DNA methylation landscapes of vascular endothelial cells. Unbiased RNA-seq, ATAC-seq, and MethylC-seq enabled exploration of these landscapes among four populations of early postnatal murine ECs to determine the factors that are associated with EC heterogeneity. Moreover, it is well established that arterial, venous, and capillary ECs represent distinct subtypes based on morphology, function, and gene expression profiles, but it is not clear whether or to what extent these EC subtypes can be further subdivided. It is also not clear how developing EC subtypes, such as tip cells and proliferating cells, are related to the more mature EC subtypes. To address these questions, we assessed EC gene expression in the developing CNS at single cell resolution by performing single-cell RNA-seq on 3,946 FACS-purified GFP-positive ECs from a P7 Tie2-GFP mouse brain."),
+                                br(),
+                                p("We encourage you to explore the genomic landscapes presented here using the tabs at the top of the page."),
+                                br(),
+                                p("You can also view the data on our ",a("AnnoJ Genome Browser.",href = "http://neomorph.salk.edu/Endothelial_cell_methylome.php")),
+                                br(),
+                                #p("To explore our developing brain endothelial cell single-cell RNA-seq database, please click ",a("here.",href="https://markfsabbagh.shinyapps.io/developingbrainecscrnaseq/")),
+                                #br(),
+                                p("This project was the result of a colloboration between the ",a("Nathans Lab,",href="http://nathanslab.mbg.jhmi.edu/"),"the ",a("Ecker Lab,",href="http://ecker.salk.edu/"),"and the ",a("Goff Lab",href="http://www.gofflab.org/")),
+                                br(),
+                                p("Please cite (citation to be added soon)")
+                              )
+                            )),
+                   tabPanel("Transcriptional Landscape",
+                            fluidPage(
+                              sidebarLayout(position="left",
+                                            sidebarPanel(
+                                              radioButtons("ECTSG",label=h3("Display TPM expression values from which category of genes:"),choices=c("Pan-endothelial","Enriched only in liver ECs","Enriched only in lung ECs","Enriched only in kidney ECs","Enriched only in P7 brain ECs","Enriched only in adult brain ECs","Enriched only in cultured ECs","Blood-brain barrier (BBB) genes","BBB genes lost upon culture")),
+                                              br(),
+                                              typeaheadInput("MS_gene_name",h3("Enter gene name and click submit to view endothelial expression levels"),value="Pecam1",choices = EC_TPMs$Gene),
+                                              actionButton("MS_submit_genes",label=h5("Submit"))
+                                            ),
+                                            mainPanel(
+                                              h3("Table of TPMs for gene list chosen from side panel:"),
+                                              dataTableOutput("differential_genes"),
+                                              br(),
+                                              h3("Expression of chosen gene in endothelial cells, non-endothelial cells, and total tissue:"),
+                                              plotOutput("MS_expression_plot"),
+                                              tableOutput("chosen_gene"),
+                                              br(),
+                                              h3("Principal component analysis using gene expression of EC-enriched genes with log2( TPM + 1) heatmap overlaid for chosen gene:"),
+                                              fluidRow(
+                                                column(6,
+                                                       plot_ly(RNA_principalComponents, x= ~PC1, y= ~PC2, z = ~PC3, color= ~tissue,colors = c("Brain"="blue","Liver"="Cyan","Lung"="magenta","Kidney"="green3","Cultured"="orange","AdultBrain"="darkblue")) %>% 
+                                                         add_markers() %>% 
+                                                         layout(title = "PCA using EC-enriched gene expression", scene = list(xaxis = list(title="PC1 (26% variance)"),
+                                                                                                                              yaxis = list(title="PC2 (20% variance)"),
+                                                                                                                              zaxis = list(title="PC3 (15% variance)")))
+                                                ),
+                                                column(5, offset = 1,plotlyOutput("RNA_heatmap")
+                                                )
+                                              )
+                                            )
+                              )
+                              
+                            )
+                   ),
+                   tabPanel("Chromatin Accessiblity Landscape",
+                            fluidPage(
+                              fluidRow(
+                                column(6,
+                                       plot_ly(ATAC_principalComponents,hoverinfo="text",text=~age, x = ~PC1, y = ~PC2, z = ~PC3, color = ~tissue,colors = c("Brain"="blue","Liver"="Cyan","Lung"="magenta","Kidney"="green3","Cultured"="orange","AdultBrain"="darkblue")) %>%
+                                         add_markers() %>%
+                                         layout(title = "PCA using accessibility at motif-containing peaks", scene = list(xaxis = list(title = 'PC1 (30% variance)'),
+                                                                                                                          yaxis = list(title = 'PC2 (25% variance)'),
+                                                                                                                          zaxis = list(title = 'PC3 (18% variance)'))),
+                                       br(),
+                                       br(),
+                                       plot_ly(ATAC_principalComponents_differentialPeaks,hoverinfo = "text",text=~age, x = ~PC1, y = ~PC2, z = ~PC3, color = ~tissue,colors=c("Brain"="blue","Liver"="Cyan","Lung"="magenta","Kidney"="green3","Cultured"="orange","AdultBrain"="darkblue")) %>%
+                                         add_markers() %>%
+                                         layout(title = "PCA using accessibility at motif-containing differential peaks",scene = list(xaxis = list(title = 'PC1 (30% variance)'),
+                                                                                                                                      yaxis = list(title = 'PC2 (25% variance)'),
+                                                                                                                                      zaxis = list(title = 'PC3 (18% variance)')))
+                                ),
+                                column(6,
+                                       h2("Explore high-variance transcription factor motifs across accessible chromatin"),
+                                       br(),
+                                       selectizeInput("ATAC_tf_motif",label="Choose motif to display accessibility deviation Z-score",choices = highVariance_motifs$name,selected = "Zic(Zf)"),
+                                       plotlyOutput("ATAC_PCA_motif"),
+                                       br(),
+                                       br(),
+                                       h2("Explore high-variance transcription factor motifs across differentially accessible chromatin"),
+                                       br(),
+                                       selectizeInput("differentialATAC_tf_motif",label="Choose motif to display accessibility deviation Z-score",choices = highVariance_motifs_differentialPeaks$name,selected = "Zic(Zf)"),
+                                       plotlyOutput("differentialATAC_PCA_motif")
+                                )
+                              )
+                            )
+                   ),
+                   tabPanel("CG Methylation Landscape",
+                            fluidPage(
+                              fluidRow(
+                                column(6,
+                                       plot_ly(methyl_principalComponents, x = ~PC1, y = ~PC2, z = ~PC3, color = ~tissue,colors=c("Brain"="blue","Liver"="Cyan","Lung"="magenta","Kidney"="green3","Cultured"="orange","AdultBrain"="darkblue")) %>%
+                                         add_markers() %>%
+                                         layout(title = "PCA using methylation at motif-containing low-methylated regions (LMRs)", scene = list(xaxis = list(title = 'PC1 (43% variance)'),
+                                                                                                                                                yaxis = list(title = 'PC2 (27% variance)'),
+                                                                                                                                                zaxis = list(title = 'PC3 (22% variance)'))),
+                                       br(),
+                                       br(),
+                                       br(),
+                                       br(),
+                                       plot_ly(DMR_methyl_principalComponents, x = ~PC1, y = ~PC2, z = ~PC3, color = ~tissue,colors=c("Brain"="blue","Liver"="Cyan","Lung"="magenta","Kidney"="green3","Cultured"="orange","AdultBrain"="darkblue")) %>%
+                                         add_markers() %>%
+                                         layout(title = "PCA using methylation at motif-containing differentially hypomethylated regions (DMRs)", scene = list(xaxis = list(title = 'PC1 (40% variance)'),
+                                                                                                                                                               yaxis = list(title = 'PC2 (31% variance)'),
+                                                                                                                                                               zaxis = list(title = 'PC3 (25% variance)')))
+                                ),
+                                column(6,
+                                       h2("Explore high-variance transcription factor motifs across hypomethylated regions (LMRs)"),
+                                       br(),
+                                       selectizeInput("Methyl_tf_motif",label="Choose motif to display accessibility deviation Z-score",choices = methyl_highVariance_motifs$name,selected = "FoxL2(Forkhead)"),
+                                       plotlyOutput("Methyl_PCA_motif"),
+                                       br(),
+                                       br(),
+                                       h2("Explore high-variance transcription factor motifs across differentially hypomethylated regions (DMRs)"),
+                                       br(),
+                                       selectizeInput("DMR_Methyl_tf_motif",label="Choose motif to display accessibility deviation Z-score",choices = DMR_methyl_highVariance_motifs$name,selected = "Zic(Zf)"),
+                                       plotlyOutput("DMR_Methyl_PCA_motif")
+                                )
+                              )
+                            )
+                   ),
+                   tabPanel("Single-Cell RNA-seq",
+                            fluidPage(
+                              sidebarLayout(position="left",
+                                            sidebarPanel(
+                                              h4("Explore the developing brain EC single-cell expression dataset"),
+                                              br(),
+                                              typeaheadInput("sc_gene_name","Enter gene name",value="Bmx",choices = gene_list),
+                                              actionButton("sc_submit_genes",label=h5("Submit"))
+                                              
+                                            ),
+                                            mainPanel(
+                                              plotOutput("tsne"),
+                                              br(),
+                                              img(src="tsne.png")
+                                            )
+                                            
+                              )
+                            )
+                   )
+)
+
+server <- function(input, output, session) {
+  MS_genes_to_plot <- eventReactive(input$MS_submit_genes,input$MS_gene_name,ignoreNULL = F)
+  
+  ECTSG_toShow <- reactive (input$ECTSG)
+  
+  ATAC_motifs_to_plot <- reactive(input$ATAC_tf_motif)
+  differentialATAC_motifs_to_plot <- reactive(input$differentialATAC_tf_motif)
+  
+  Methyl_motifs_to_plot <- reactive(input$Methyl_tf_motif)
+  DMR_Methyl_motifs_to_plot <- reactive(input$DMR_Methyl_tf_motif)
+  
+  output$chosen_gene <- renderTable(
+    {
+      dplyr::filter(EC_TPMs_averages,Gene == MS_genes_to_plot())
+    }
+  )
+  
+  output$differential_genes <- renderDataTable(
+    {
+      if (ECTSG_toShow()=="Pan-endothelial") {
+        semi_join(EC_TPMs_averages,pan_endothelial,by=c("Gene"))
+      } else if (ECTSG_toShow() =="Enriched only in P7 brain ECs") {
+        semi_join(EC_TPMs_averages,p7_brain_intersect_DEG,by=c("Gene")) %>% 
+          mutate("Fold Change"=`P7_BrainEC_TPMs`/(((`P7_LiverEC_TPMs` + `P7_LungEC_TPMs` + `P7_KidneyEC_TPMs`)/3)+1)) %>%
+          arrange(desc(`Fold Change`)) 
+      } else if (ECTSG_toShow() =="Enriched only in liver ECs") {
+        semi_join(EC_TPMs_averages,liver_intersect_DEG,by=c("Gene")) %>% 
+          mutate("Fold Change"=`P7_LiverEC_TPMs`/(((`P7_BrainEC_TPMs` + `P7_LungEC_TPMs` + `P7_KidneyEC_TPMs`)/3)+1)) %>% 
+          arrange(desc(`Fold Change`)) 
+      } else if (ECTSG_toShow() =="Enriched only in lung ECs") {
+        semi_join(EC_TPMs_averages,lung_intersect_DEG,by=c("Gene")) %>% 
+          mutate("Fold Change"=`P7_LungEC_TPMs`/(((`P7_LiverEC_TPMs` + `P7_BrainEC_TPMs` + `P7_KidneyEC_TPMs`)/3)+1)) %>% 
+          arrange(desc(`Fold Change`)) 
+      } else if (ECTSG_toShow() =="Enriched only in kidney ECs") {
+        semi_join(EC_TPMs_averages,kidney_intersect_DEG,by=c("Gene")) %>% 
+          mutate("Fold Change"=`P7_KidneyEC_TPMs`/(((`P7_LiverEC_TPMs` + `P7_LungEC_TPMs` + `P7_BrainEC_TPMs`)/3)+1)) %>% 
+          arrange(desc(`Fold Change`)) 
+      } else if (ECTSG_toShow() =="Enriched only in cultured ECs") {
+        semi_join(EC_TPMs_averages,CulturedEC_DEG,by=c("Gene")) %>% 
+          mutate("Fold Change"=`Cultured_BrainEC_TPMs`/(`P7_BrainEC_TPMs` + 1)) %>% 
+          arrange(desc(`Fold Change`)) 
+      } else if (ECTSG_toShow() =="Blood-brain barrier (BBB) genes") {
+        semi_join(EC_TPMs_averages,BBB_genes,by=c("Gene")) %>% 
+          mutate("Fold Change"=`P7_BrainEC_TPMs`/(((`P7_LiverEC_TPMs` + `P7_LungEC_TPMs` + `P7_KidneyEC_TPMs`)/3)+1)) %>% 
+          arrange(desc(`Fold Change`)) 
+      } else if (ECTSG_toShow() =="BBB genes lost upon culture") {
+        semi_join(EC_TPMs_averages,BBB_genes_lost,by=c("Gene")) %>% 
+          mutate("Fold Change"=`P7_BrainEC_TPMs`/(((`P7_LiverEC_TPMs` + `P7_LungEC_TPMs` + `P7_KidneyEC_TPMs`)/3)+1)) %>% 
+          arrange(desc(`Fold Change`)) 
+      } else if (ECTSG_toShow() =="Enriched only in adult brain ECs") {
+        semi_join(EC_TPMs_averages,adult_brain_intersect_DEG,by=c("Gene")) %>% 
+          mutate("Fold Change"=`Adult_BrainEC_TPMs`/(((`P7_LiverEC_TPMs` + `P7_LungEC_TPMs` + `P7_KidneyEC_TPMs`)/3)+1)) %>% 
+          arrange(desc(`Fold Change`)) 
+      } 
+      
+      
+    },
+    options=list(pageLength=5)
+  )
+  
+  output$MS_expression_plot <- renderPlot(
+    {
+      ggplot(filter(EC_TPMs_tidy,Gene %in% MS_genes_to_plot()),aes(x=Tissue,y=Expression,color=Tissue,shape=Fraction,alpha=Replicate)) +
+        geom_point(size=4,position = position_dodge(width=0.9))+ 
+        theme_gray(base_size = 20) + ylab("Expression (TPM)")+ 
+        scale_color_manual(values=c("Brain"="blue","Liver"="Cyan","Lung"="magenta","Kidney"="green3","Cultured"="orange","AdultBrain"="darkblue"),guide=F)+ 
+        expand_limits(y=0) + scale_alpha_manual(values=c("R1"=1,"R2"=1),guide=F) + scale_shape_discrete(name="Cell or tissue fraction",labels=c("Non-EC","EC","Total tissue"))+ 
+        facet_grid(Gene ~ Fraction,scales="free_x", labeller = labeller(Fraction = as_labeller(fraction_names))) + theme(axis.text.x = element_text(angle = 90),strip.background = element_blank(), strip.text = element_text(face = "italic"))
+      
+    })
+  
+  
+  
+  output$RNA_heatmap <- renderPlotly( {
+    
+    
+    
+    plot_ly(RNA_principalComponents,hoverinfo = "text", x= ~PC1, y= ~PC2, z = ~PC3, text=~tissue, marker=list(color= ~log2(get(MS_genes_to_plot()) + 1), colorscale = "YlOrRd",cmin=0,cmax= ~max(log2(get(MS_genes_to_plot()) + 1)),showscale=TRUE,reversescale=T)) %>% 
+      add_markers() %>% 
+      layout(title = MS_genes_to_plot(), scene = list(xaxis = list(title="PC1 (26% variance)"),
+                                                      yaxis = list(title="PC2 (20% variance)"),
+                                                      zaxis = list(title="PC3 (15% variance)")),
+             annotations = list(
+               x = 1.13,
+               y = 1.05,
+               text = 'Log2 (TPM + 1)',
+               xref = 'paper',
+               yref = 'paper',
+               showarrow = FALSE
+             ))
+  })
+  
+  output$ATAC_PCA_motif <- renderPlotly( {
+    
+    plot_ly(ATAC_principalComponents,hoverinfo = "text",text= ~tissue, x = ~PC1, y = ~PC2, z = ~PC3, marker = list(color = ~get(ATAC_motifs_to_plot()), colorscale = c('#FFE1A1', '#683531'), showscale = TRUE)) %>%
+      add_markers() %>%
+      layout(scene = list(xaxis = list(title = 'PC1 (30% variance)'),
+                          yaxis = list(title = 'PC2 (25% variance)'),
+                          zaxis = list(title = 'PC3 (18% variance)')),
+             annotations = list(
+               x = 1.13,
+               y = 1.05,
+               text = 'Z-score',
+               xref = 'paper',
+               yref = 'paper',
+               showarrow = FALSE
+             ))
+    
+    
+    
+  }
+  )
+  
+  output$Methyl_PCA_motif <- renderPlotly( {
+    
+    plot_ly(methyl_principalComponents,hoverinfo="text",text=~tissue, x = ~PC1, y = ~PC2, z = ~PC3, marker = list(color = ~get(Methyl_motifs_to_plot()), colorscale = c('#FFE1A1', '#683531'), showscale = TRUE)) %>%
+      add_markers() %>%
+      layout(scene = list(xaxis = list(title = 'PC1 (43% variance)'),
+                          yaxis = list(title = 'PC2 (27% variance)'),
+                          zaxis = list(title = 'PC3 (22% variance)')),
+             annotations = list(
+               x = 1.13,
+               y = 1.05,
+               text = 'Z-score',
+               xref = 'paper',
+               yref = 'paper',
+               showarrow = FALSE
+             ))
+    
+    
+  }
+  )
+  
+  output$DMR_Methyl_PCA_motif <- renderPlotly( {
+    
+    plot_ly(DMR_methyl_principalComponents,hoverinfo="text",text=~tissue, x = ~PC1, y = ~PC2, z = ~PC3, marker = list(color = ~get(DMR_Methyl_motifs_to_plot()), colorscale = c('#FFE1A1', '#683531'), showscale = TRUE)) %>%
+      add_markers() %>%
+      layout(scene = list(xaxis = list(title = 'PC1 (40% variance)'),
+                          yaxis = list(title = 'PC2 (31% variance)'),
+                          zaxis = list(title = 'PC3 (25% variance)')),
+             annotations = list(
+               x = 1.13,
+               y = 1.05,
+               text = 'Z-score',
+               xref = 'paper',
+               yref = 'paper',
+               showarrow = FALSE
+             ))
+    
+    
+  }
+  )
+  
+  output$differentialATAC_PCA_motif <- renderPlotly( {
+    
+    plot_ly(ATAC_principalComponents_differentialPeaks,hoverinfo="text",text=~tissue, x = ~PC1, y = ~PC2, z = ~PC3, marker = list(color = ~get(differentialATAC_motifs_to_plot()), colorscale = c('#FFE1A1', '#683531'), showscale = TRUE)) %>%
+      add_markers() %>%
+      layout(scene = list(xaxis = list(title = 'PC1 (30% variance)'),
+                          yaxis = list(title = 'PC2 (25% variance)'),
+                          zaxis = list(title = 'PC3 (18% variance)')),
+             annotations = list(
+               x = 1.13,
+               y = 1.05,
+               text = 'Z-score',
+               xref = 'paper',
+               yref = 'paper',
+               showarrow = FALSE
+             ))
+    
+    
+  }
+  )
+  
+  sc_genes_to_plot <- eventReactive (input$sc_submit_genes, input$sc_gene_name, ignoreNULL = F)
+  
+  output$tsne <- renderPlot( {
+    visualize_gene_markers2(gbm_log[, colnames(gbm_log) %in% rownames(tsne_proj3)], sc_genes_to_plot() ,tsne_proj3[,c("tsne3.1","tsne3.2")],limits=c(0,10), low_col = "lightblue", high_col = "darkblue", marker_size=0.6, axis_line_size = 0.5, axis_tick_size = 0.5) +
+      xlab("TSNE 1") + ylab("TSNE 2") + theme(aspect.ratio = 1,text = element_text(size=20), legend.title = element_text(colour="black", size=18, face="bold"))
+  }
+  )
+  
+}
+
+
+# Run the application 
+shinyApp(ui = ui, server = server)
+

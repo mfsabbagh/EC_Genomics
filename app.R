@@ -1,5 +1,5 @@
 #list of packages required
-list.of.packages <- c("devtools","shiny","tidyverse","magrittr","reshape2","stringr","plotly","cellrangerRkit")
+list.of.packages <- c("devtools","shiny","tidyverse","magrittr","reshape2","stringr","plotly")
 
 #checking missing packages from list
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]

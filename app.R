@@ -1,5 +1,5 @@
 #list of packages required
-list.of.packages <- c("devtools","shiny","tidyverse","magrittr","reshape2","stringr","plotly")
+list.of.packages <- c("devtools","shiny","tidyverse","magrittr","reshape2","stringr","plotly","shinyTypeahead","monocle","cellrangerRkit")
 
 #checking missing packages from list
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
@@ -7,11 +7,16 @@ new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"
 #install missing ones
 if(length(new.packages)) install.packages(new.packages, dependencies = TRUE)
 
-devtools::install_github("ThomasSiegmund/shinyTypeahead")
-source("https://bioconductor.org/biocLite.R")
-biocLite("monocle")
+if ("shinyTypeahead" %in% new.packages) devtools::install_github("ThomasSiegmund/shinyTypeahead")
+
+if ("monocle" %in% new.packages) {
+  source("https://bioconductor.org/biocLite.R") 
+  biocLite("monocle")
+}
+
 #devtools::install_github("buenrostrolab/cellrangerRkit")
-source("http://cf.10xgenomics.com/supp/cell-exp/rkit-install-2.0.0.R")
+
+if("cellrangerRkit" %in% new.packages) source("http://cf.10xgenomics.com/supp/cell-exp/rkit-install-2.0.0.R")
 
 library(shiny)
 library(shinyTypeahead)

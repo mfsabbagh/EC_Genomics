@@ -275,7 +275,6 @@ server <- function(input, output, session) {
         geom_point(size=4,position = position_dodge(width=0.9))+ 
         theme_gray(base_size = 20) + ylab("Expression (TPM)")+ 
         scale_color_manual(values=c("Brain"="blue","Liver"="Cyan","Lung"="magenta","Kidney"="green3","Cultured"="orange","AdultBrain"="darkblue"),guide=F)+
-        scale_x_discrete(labels = c("Adult Brain","P7 Brain","Cultured", "P7 Kidney","P7 Liver","P7 Lung"))+
         expand_limits(y=0) + scale_alpha_manual(values=c("R1"=1,"R2"=1),guide=F) + scale_shape_discrete(name="Cell or tissue fraction",labels=c("Non-EC","EC","Total tissue"))+ 
         facet_grid(Gene ~ Fraction,scales="free_x", labeller = labeller(Fraction = as_labeller(fraction_names))) + theme(axis.text.x = element_text(angle = 90),strip.background = element_blank(), strip.text = element_text(face = "italic"))
       

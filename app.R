@@ -92,7 +92,7 @@ ui <- navbarPage ( "Vascular Endothelial Cell Trans-omics Resource Database",
                             fluidPage(
                               sidebarLayout(position="left",
                                             sidebarPanel(
-                                              radioButtons("ECTSG",label=h3("Display TPM expression values from which category of genes:"),choices=c("Pan-endothelial","Enriched only in liver ECs","Enriched only in lung ECs","Enriched only in kidney ECs","Enriched only in P7 brain ECs","Enriched only in adult brain ECs","Enriched only in cultured ECs","Blood-brain barrier (BBB) genes","BBB genes lost upon culture")),
+                                              radioButtons("ECTSG",label=h3("Display TPM expression values from which category of genes:"),choices=c("Pan-endothelial","Enriched only in P7 liver ECs","Enriched only in P7 lung ECs","Enriched only in P7 kidney ECs","Enriched only in P7 brain ECs","Enriched only in adult brain ECs","Enriched only in cultured ECs","Blood-brain barrier (BBB) genes","BBB genes lost upon culture")),
                                               br(),
                                               typeaheadInput("MS_gene_name",h3("Enter gene name and click submit to view endothelial expression levels"),value="Pecam1",choices = EC_TPMs$Gene),
                                               actionButton("MS_submit_genes",label=h5("Submit"))
@@ -234,15 +234,15 @@ server <- function(input, output, session) {
         semi_join(EC_TPMs_averages,p7_brain_intersect_DEG,by=c("Gene")) %>% 
           mutate("Fold Change"=`P7_BrainEC_TPMs`/(((`P7_LiverEC_TPMs` + `P7_LungEC_TPMs` + `P7_KidneyEC_TPMs`)/3)+1)) %>%
           arrange(desc(`Fold Change`)) 
-      } else if (ECTSG_toShow() =="Enriched only in liver ECs") {
+      } else if (ECTSG_toShow() =="Enriched only in P7 liver ECs") {
         semi_join(EC_TPMs_averages,liver_intersect_DEG,by=c("Gene")) %>% 
           mutate("Fold Change"=`P7_LiverEC_TPMs`/(((`P7_BrainEC_TPMs` + `P7_LungEC_TPMs` + `P7_KidneyEC_TPMs`)/3)+1)) %>% 
           arrange(desc(`Fold Change`)) 
-      } else if (ECTSG_toShow() =="Enriched only in lung ECs") {
+      } else if (ECTSG_toShow() =="Enriched only in P7 lung ECs") {
         semi_join(EC_TPMs_averages,lung_intersect_DEG,by=c("Gene")) %>% 
           mutate("Fold Change"=`P7_LungEC_TPMs`/(((`P7_LiverEC_TPMs` + `P7_BrainEC_TPMs` + `P7_KidneyEC_TPMs`)/3)+1)) %>% 
           arrange(desc(`Fold Change`)) 
-      } else if (ECTSG_toShow() =="Enriched only in kidney ECs") {
+      } else if (ECTSG_toShow() =="Enriched only in P7 kidney ECs") {
         semi_join(EC_TPMs_averages,kidney_intersect_DEG,by=c("Gene")) %>% 
           mutate("Fold Change"=`P7_KidneyEC_TPMs`/(((`P7_LiverEC_TPMs` + `P7_LungEC_TPMs` + `P7_BrainEC_TPMs`)/3)+1)) %>% 
           arrange(desc(`Fold Change`)) 
@@ -274,7 +274,8 @@ server <- function(input, output, session) {
       ggplot(filter(EC_TPMs_tidy,Gene %in% MS_genes_to_plot()),aes(x=Tissue,y=Expression,color=Tissue,shape=Fraction,alpha=Replicate)) +
         geom_point(size=4,position = position_dodge(width=0.9))+ 
         theme_gray(base_size = 20) + ylab("Expression (TPM)")+ 
-        scale_color_manual(values=c("Brain"="blue","Liver"="Cyan","Lung"="magenta","Kidney"="green3","Cultured"="orange","AdultBrain"="darkblue"),guide=F)+ 
+        scale_color_manual(values=c("Brain"="blue","Liver"="Cyan","Lung"="magenta","Kidney"="green3","Cultured"="orange","AdultBrain"="darkblue"),guide=F)+
+        scale_x_discrete(labels = c("Adult Brain","P7 Brain","Cultured", "P7 Kidney","P7 Liver","P7 Lung"))+
         expand_limits(y=0) + scale_alpha_manual(values=c("R1"=1,"R2"=1),guide=F) + scale_shape_discrete(name="Cell or tissue fraction",labels=c("Non-EC","EC","Total tissue"))+ 
         facet_grid(Gene ~ Fraction,scales="free_x", labeller = labeller(Fraction = as_labeller(fraction_names))) + theme(axis.text.x = element_text(angle = 90),strip.background = element_blank(), strip.text = element_text(face = "italic"))
       

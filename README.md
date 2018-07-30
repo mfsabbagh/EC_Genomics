@@ -4,4 +4,16 @@ This Shiny App will allow you to explore the Vascular Endothelial Cell Trans-omi
 
 The app is also accessible via https://markfsabbagh.shinyapps.io/vectrdb/
 
+# Running the app locally
+
+To use the app on your local computer, simply run the following commands from an R console:
+
+```R
+install.packages("shiny")
+library(shiny)
+runGitHub("EC_Genomics","mfsabbagh")
+```
+
+# Citation
+
 Please cite: Mark F. Sabbagh, Jacob S. Heng, Chongyuan Luo, Rosa G. Castanon, Joseph R. Nery, Amir Rattner, Loyal A. Goff, Joseph R. Ecker, and Jeremy Nathans. Vascular Endothelial Cell Trans-omics Resource Database (VECTRDB). https://markfsabbagh.shinyapps.io/vectrdb/

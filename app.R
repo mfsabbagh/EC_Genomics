@@ -25,9 +25,40 @@ library(magrittr)
 library(stringr)
 library(plotly)
 library(monocle)
-source('MS01_custom_functions.R')
 library(cellrangerRkit)
 library(reshape2)
+
+visualize_gene_markers2 <-function (gbm, gene_probes, projection, limits = c(0, 0.5), low_col = "lightblue", high_col = "darkblue", marker_size = 0.1, 
+                                    title = NULL, axis_line_size = 1.0, axis_tick_size = 1.0, panel_border_size = 1.0) 
+{
+  gbm_trunc <- trunc_gbm_by_genes(gbm, gene_probes)
+  gene_values <- t(as.matrix(Biobase::exprs(gbm_trunc)))
+  gene_values[gene_values < limits[1]] <- limits[1]
+  gene_values[gene_values > limits[2]] <- limits[2]
+  colnames(gene_values) <- gene_probes
+  projection_names <- colnames(projection)
+  colnames(projection) <- c("Component.1", "Component.2")
+  proj_gene <- data.frame(cbind(projection, gene_values))
+  proj_gene_melt <- melt(proj_gene, id.vars = c("Component.1", "Component.2"))
+  colnames(proj_gene_melt) <- c("Component.1", "Component.2", "gene_probe", "value")
+  p <- ggplot(proj_gene_melt, aes(Component.1, Component.2)) + 
+    geom_point(aes(colour = value), size = marker_size) + 
+    facet_wrap(~gene_probe,ncol=7, scales = "free") + scale_colour_gradient(low = low_col, 
+                                                                            high = high_col, name = "value") + theme(strip.background = element_rect(colour = "black", fill = "white"))
+  if (!is.null(title)) {
+    p <- p + ggtitle(title)
+  }
+  p <- p + theme_bw() + theme(panel.border = element_rect(linetype = "solid", size = panel_border_size, fill = NA),
+                              plot.title = element_text(hjust = 0.5),
+                              axis.line.x = element_line(colour = 'black', size = axis_line_size),
+                              axis.line.y = element_line(colour = 'black', size = axis_line_size),
+                              axis.ticks = element_line(colour = "black", size = axis_tick_size),
+                              panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
+                              strip.background = element_rect(colour = "black", fill = "white"),
+                              legend.key.height = unit(0.85, "cm"))
+  
+  return(p)
+}
 
 ##### Transcriptional landscape #####
 RNA_principalComponents <- readRDS("RNA_principalComponents.rds")

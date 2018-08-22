@@ -127,7 +127,7 @@ ui <- navbarPage ( "Vascular Endothelial Cell Trans-omics Resource Database",
                                 p("This project was the result of a colloboration between the ",a("Nathans Lab,",href="http://nathanslab.mbg.jhmi.edu/"),"the ",a("Ecker Lab,",href="http://ecker.salk.edu/"),"and the ",a("Goff Lab",href="http://www.gofflab.org/")),
                                 br(),
                                 h4("Please cite:"),
-                                h4("Mark F. Sabbagh, Jacob S. Heng, Chongyuan Luo, Rosa G. Castanon, Joseph R. Nery, Amir Rattner, Loyal A. Goff, Joseph R. Ecker, and Jeremy Nathans. Vascular Endothelial Cell Trans-omics Resource Database (VECTRDB). https://markfsabbagh.shinyapps.io/vectrdb/")
+                                h4("Mark F. Sabbagh, Jacob S. Heng, Chongyuan Luo, Rosa G. Castanon, Joseph R. Nery, Amir Rattner, Loyal A. Goff, Joseph R. Ecker, and Jeremy Nathans (In press). \"Transcriptional and epigenomic landscapes of CNS and non-CNS vascular endothelial cells.\" eLife")
                               )
                             )),
                    tabPanel("Transcriptional Landscape",

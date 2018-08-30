@@ -16,4 +16,4 @@ runGitHub("EC_Genomics","mfsabbagh")
 
 # Citation
 
-Please cite: Mark F. Sabbagh, Jacob S. Heng, Chongyuan Luo, Rosa G. Castanon, Joseph R. Nery, Amir Rattner, Loyal A. Goff, Joseph R. Ecker, and Jeremy Nathans. Vascular Endothelial Cell Trans-omics Resource Database (VECTRDB). https://markfsabbagh.shinyapps.io/vectrdb/
+Please cite: Mark F. Sabbagh, Jacob S. Heng, Chongyuan Luo, Rosa G. Castanon, Joseph R. Nery, Amir Rattner, Loyal A. Goff, Joseph R. Ecker, and Jeremy Nathans (In press). "Transcriptional and epigenomic landscapes of CNS and non-CNS vascular endothelial cells." eLife

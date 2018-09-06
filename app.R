@@ -127,7 +127,7 @@ ui <- navbarPage ( "Vascular Endothelial Cell Trans-omics Resource Database",
                                 p("This project was the result of a colloboration between the ",a("Nathans Lab,",href="http://nathanslab.mbg.jhmi.edu/"),"the ",a("Ecker Lab,",href="http://ecker.salk.edu/"),"and the ",a("Goff Lab",href="http://www.gofflab.org/")),
                                 br(),
                                 h4("Please cite as:"),
-                                h4("Mark F. Sabbagh, Jacob S. Heng, Chongyuan Luo, Rosa G. Castanon, Joseph R. Nery, Amir Rattner, Loyal A. Goff, Joseph R. Ecker, and Jeremy Nathans. \"Transcriptional and epigenomic landscapes of CNS and non-CNS vascular endothelial cells.\" eLife 2018;7:e36187 DOI: 10.7554/eLife.36187")
+                                h4("Mark F. Sabbagh, Jacob S. Heng, Chongyuan Luo, Rosa G. Castanon, Joseph R. Nery, Amir Rattner, Loyal A. Goff, Joseph R. Ecker, and Jeremy Nathans. \"Transcriptional and epigenomic landscapes of CNS and non-CNS vascular endothelial cells.\" eLife 2018;7:e36187 DOI: ",a("10.7554/eLife.36187",href="https://doi.org/10.7554/eLife.36187"))
                               )
                             )),
                    tabPanel("Transcriptional Landscape",

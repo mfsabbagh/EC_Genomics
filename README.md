@@ -16,4 +16,4 @@ runGitHub("EC_Genomics","mfsabbagh")
 
 # Citation
 
-Please cite: Mark F. Sabbagh, Jacob S. Heng, Chongyuan Luo, Rosa G. Castanon, Joseph R. Nery, Amir Rattner, Loyal A. Goff, Joseph R. Ecker, and Jeremy Nathans (In press). "Transcriptional and epigenomic landscapes of CNS and non-CNS vascular endothelial cells." eLife
+Please cite as: Mark F. Sabbagh, Jacob S. Heng, Chongyuan Luo, Rosa G. Castanon, Joseph R. Nery, Amir Rattner, Loyal A. Goff, Joseph R. Ecker, and Jeremy Nathans. "Transcriptional and epigenomic landscapes of CNS and non-CNS vascular endothelial cells." eLife 2018;7:e36187 DOI: 10.7554/eLife.36187

@@ -1,5 +1,5 @@
 #list of packages required
-list.of.packages <- c("devtools","shiny","tidyverse","magrittr","reshape2","stringr","plotly","shinyTypeahead","monocle","cellrangerRkit","cellwrangler")
+list.of.packages <- c("devtools","shiny","tidyverse","magrittr","reshape2","stringr","plotly","shinyTypeahead","monocle","cellrangerRkit")
 
 #checking missing packages from list
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
@@ -14,7 +14,7 @@ if ("monocle" %in% new.packages) {
   biocLite("monocle")
 }
 
-if("cellwrangler" %in% new.packages) devtools::install_github("jacobheng/cellwrangler")
+#devtools::install_github("buenrostrolab/cellrangerRkit")
 
 if("cellrangerRkit" %in% new.packages) source("http://cf.10xgenomics.com/supp/cell-exp/rkit-install-2.0.0.R")
 
@@ -27,9 +27,41 @@ library(plotly)
 library(monocle)
 library(cellrangerRkit)
 library(reshape2)
-library(cellwrangler)
+
+visualize_gene_markers2 <-function (gbm, gene_probes, projection, limits = c(0, 0.5), low_col = "lightblue", high_col = "darkblue", marker_size = 0.1, 
+                                    title = NULL, axis_line_size = 1.0, axis_tick_size = 1.0, panel_border_size = 1.0) 
+{
+  gbm_trunc <- trunc_gbm_by_genes(gbm, gene_probes)
+  gene_values <- t(as.matrix(Biobase::exprs(gbm_trunc)))
+  gene_values[gene_values < limits[1]] <- limits[1]
+  gene_values[gene_values > limits[2]] <- limits[2]
+  colnames(gene_values) <- gene_probes
+  projection_names <- colnames(projection)
+  colnames(projection) <- c("Component.1", "Component.2")
+  proj_gene <- data.frame(cbind(projection, gene_values))
+  proj_gene_melt <- melt(proj_gene, id.vars = c("Component.1", "Component.2"))
+  colnames(proj_gene_melt) <- c("Component.1", "Component.2", "gene_probe", "value")
+  p <- ggplot(proj_gene_melt, aes(Component.1, Component.2)) + 
+    geom_point(aes(colour = value), size = marker_size) + 
+    facet_wrap(~gene_probe,ncol=7, scales = "free") + scale_colour_gradient(low = low_col, 
+                                                                            high = high_col, name = "value") + theme(strip.background = element_rect(colour = "black", fill = "white"))
+  if (!is.null(title)) {
+    p <- p + ggtitle(title)
+  }
+  p <- p + theme_bw() + theme(panel.border = element_rect(linetype = "solid", size = panel_border_size, fill = NA),
+                              plot.title = element_text(hjust = 0.5),
+                              axis.line.x = element_line(colour = 'black', size = axis_line_size),
+                              axis.line.y = element_line(colour = 'black', size = axis_line_size),
+                              axis.ticks = element_line(colour = "black", size = axis_tick_size),
+                              panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
+                              strip.background = element_rect(colour = "black", fill = "white"),
+                              legend.key.height = unit(0.85, "cm"))
+  
+  return(p)
+}
 
 ##### Transcriptional landscape #####
+RNA_principalComponents <- readRDS("RNA_principalComponents.rds")
 EC_TPMs <- readRDS("EC_TPMs.rds")
 EC_TPMs_averages <- readRDS("EC_TPMs_averages.rds")
 EC_TPMs_tidy <- readRDS("EC_TPMs_tidy.rds")
@@ -65,7 +97,8 @@ DMR_methyl_principalComponents <- readRDS("DMR_methyl_principalComponents.rds")
 DMR_methyl_highVariance_motifs <- readRDS("DMR_methyl_highVariance_motifs.rds")
 
 ##### Single Cell ####
-dat <- readRDS("endothelial.rds")
+gbm_log <- readRDS("gbm_log.rds")
+tsne_proj3 <- readRDS("tsne_proj3.rds")
 gene_list <- readRDS("gene_list.rds")
 
 ui <- navbarPage ( "Vascular Endothelial Cell Trans-omics Resource Database",
@@ -112,7 +145,20 @@ ui <- navbarPage ( "Vascular Endothelial Cell Trans-omics Resource Database",
                                               br(),
                                               h3("Expression of chosen gene in endothelial cells, non-endothelial cells, and total tissue:"),
                                               plotOutput("MS_expression_plot"),
-                                              tableOutput("chosen_gene")
+                                              tableOutput("chosen_gene"),
+                                              br(),
+                                              h3("Principal component analysis using gene expression of EC-enriched genes with log2( TPM + 1) heatmap overlaid for chosen gene:"),
+                                              fluidRow(
+                                                column(6,
+                                                       plot_ly(RNA_principalComponents, x= ~PC1, y= ~PC2, z = ~PC3, color= ~tissue,colors = c("Brain"="blue","Liver"="Cyan","Lung"="magenta","Kidney"="green3","Cultured"="orange","AdultBrain"="darkblue")) %>% 
+                                                         add_markers() %>% 
+                                                         layout(title = "PCA using EC-enriched gene expression", scene = list(xaxis = list(title="PC1 (26% variance)"),
+                                                                                                                              yaxis = list(title="PC2 (20% variance)"),
+                                                                                                                              zaxis = list(title="PC3 (15% variance)")))
+                                                ),
+                                                column(5, offset = 1,plotlyOutput("RNA_heatmap")
+                                                )
+                                              )
                                             )
                               )
                               
@@ -189,16 +235,15 @@ ui <- navbarPage ( "Vascular Endothelial Cell Trans-omics Resource Database",
                               sidebarLayout(position="left",
                                             sidebarPanel(
                                               h4("Explore the developing brain EC single-cell expression dataset"),
-                                              radioButtons("plot_type", label = h3("Plot type"),
-                                                           choices = list("Jitter plot" = 1, "Bar plot" = 2),
-                                                           selected = 1),
                                               br(),
                                               typeaheadInput("sc_gene_name","Enter gene name",value="Bmx",choices = gene_list),
                                               actionButton("sc_submit_genes",label=h5("Submit"))
                                               
                                             ),
                                             mainPanel(
-                                              plotOutput("tsne")
+                                              plotOutput("tsne"),
+                                              br(),
+                                              img(src="tsne.png")
                                             )
                                             
                               )
@@ -277,6 +322,26 @@ server <- function(input, output, session) {
       
     })
   
+  
+  
+  output$RNA_heatmap <- renderPlotly( {
+    
+    
+    
+    plot_ly(RNA_principalComponents,hoverinfo = "text", x= ~PC1, y= ~PC2, z = ~PC3, text=~tissue, marker=list(color= ~log2(get(MS_genes_to_plot()) + 1), colorscale = "YlOrRd",cmin=0,cmax= ~max(log2(get(MS_genes_to_plot()) + 1)),showscale=TRUE,reversescale=T)) %>% 
+      add_markers() %>% 
+      layout(title = MS_genes_to_plot(), scene = list(xaxis = list(title="PC1 (26% variance)"),
+                                                      yaxis = list(title="PC2 (20% variance)"),
+                                                      zaxis = list(title="PC3 (15% variance)")),
+             annotations = list(
+               x = 1.13,
+               y = 1.05,
+               text = 'Log2 (TPM + 1)',
+               xref = 'paper',
+               yref = 'paper',
+               showarrow = FALSE
+             ))
+  })
   
   output$ATAC_PCA_motif <- renderPlotly( {
     
@@ -361,19 +426,11 @@ server <- function(input, output, session) {
   
   sc_genes_to_plot <- eventReactive (input$sc_submit_genes, input$sc_gene_name, ignoreNULL = F)
   
-  output$tsne <- renderPlot ( {
-    if(input$plot_type == 1) {
-      gene_jitterplot(sc_genes_to_plot(), cds=dat, color="CellType",group="CellType", plot_trend = F, relative_expr = F) + 
-        theme(text = element_text(size=25))
-          } else {
-                cellwrangler::gene_barplot(sc_genes_to_plot(), dat, color="CellType",group="CellType", plot_trend = F) +
-              theme(text = element_text(size=25))
-                 
-              }
-    
-  } )
-  
-
+  output$tsne <- renderPlot( {
+    visualize_gene_markers2(gbm_log[, colnames(gbm_log) %in% rownames(tsne_proj3)], sc_genes_to_plot() ,tsne_proj3[,c("tsne3.1","tsne3.2")],limits=c(0,10), low_col = "lightblue", high_col = "darkblue", marker_size=0.6, axis_line_size = 0.5, axis_tick_size = 0.5) +
+      xlab("TSNE 1") + ylab("TSNE 2") + theme(aspect.ratio = 1,text = element_text(size=20), legend.title = element_text(colour="black", size=18, face="bold"))
+  }
+  )
   
 }
 

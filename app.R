@@ -65,8 +65,8 @@ DMR_methyl_principalComponents <- readRDS("DMR_methyl_principalComponents.rds")
 DMR_methyl_highVariance_motifs <- readRDS("DMR_methyl_highVariance_motifs.rds")
 
 ##### Single Cell ####
-dat_summary <- readRDS("endothelial_dat_summary.rds")
-gene_list <- readRDS("gene_list.rds")
+endothelial_summary <- readRDS("endothelial_dat_summary.rds")
+endothelial_scaled_summary <- readRDS("endothelial_scaled_summary.rds")
 
 ui <- navbarPage ( "Vascular Endothelial Cell Trans-omics Resource Database",
                    tabPanel("Home",
@@ -190,7 +190,7 @@ ui <- navbarPage ( "Vascular Endothelial Cell Trans-omics Resource Database",
                                             sidebarPanel(
                                               h4("Explore the developing brain EC single-cell expression dataset"),
                                               br(),
-                                              typeaheadInput("sc_gene_name","Enter gene name",value="Bmx",choices = gene_list),
+                                              typeaheadInput("sc_gene_name","Enter gene name",value="Bmx",choices = unique(endothelial_scaled_summary$gene_short_name)),
                                               actionButton("sc_submit_genes",label=h5("Submit"))
                                               
                                             ),
@@ -359,7 +359,7 @@ server <- function(input, output, session) {
   sc_genes_to_plot <- eventReactive (input$sc_submit_genes, input$sc_gene_name, ignoreNULL = F)
   
   output$sc_plot <- renderPlot ( {
-   ggplot(filter(dat_summary,gene_short_name %in% sc_genes_to_plot()),aes(x=CellType,y=mean,fill=CellType)) +
+   ggplot(filter(endothelial_scaled_summary,gene_short_name %in% sc_genes_to_plot()),aes(x=CellType,y=mean,fill=CellType)) +
       geom_bar(stat="identity") + 
       geom_errorbar(aes(x=CellType,ymin=mean-std_error,ymax=mean+std_error),size=0.9,width=0.5) +
       theme_classic(base_size = 20)

@@ -1,5 +1,3 @@
-# An updated version of this app is available via https://markfsabbagh.shinyapps.io/vectrdb/
-
 # Vascular Endothelial Cell Trans-omics Resource Database (VECTRDB)
 
 This Shiny App will allow you to explore the Vascular Endothelial Cell Trans-omics Resource Database (VECTRDB), a database that integrates and compares the transcriptional, chromatin accessibility, and DNA methylation landscapes of vascular endothelial cells (ECs). Unbiased RNA-seq, ATAC-seq, and MethylC-seq enabled exploration of these landscapes among postnatal day 7 (P7) vascular ECs isolated from brain, liver, lung, and kidney of Tie2-GFP transgenic mice. These datasets should provide a foundation to determine the factors that are associated with EC heterogeneity. The app also allows exploration of EC gene expression in the developing CNS at single cell resolution.
